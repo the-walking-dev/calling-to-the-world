@@ -8,6 +8,8 @@ public class MultitenantClient {
     private final String  phoneNumber;
     private final Client  client;
 
+    private boolean waitingCode = false;
+
     public MultitenantClient(String tenantName) {
         this.tenantName  = tenantName;
         this.apiId       = Integer.parseInt(System.getenv(String.format("%s_API_ID", tenantName.toUpperCase())));
@@ -16,7 +18,20 @@ public class MultitenantClient {
         this.client      = Client.create(new MyResultHandler(), null, null);
     }
 
-    void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState, final Client.ResultHandler resultHandler) {
+    public String tenantName() {
+        return tenantName;
+    }
+
+    public void sendAuthCode(String code) {
+        if (waitingCode) {
+            client.send(new TdApi.CheckAuthenticationCode(code), obj -> System.out.printf("logged? %t", obj.getConstructor() == TdApi.Ok.CONSTRUCTOR));
+        } else {
+            System.out.printf("%s sending auth code not waiting for it\n", tenantName());
+        }
+    }
+
+    private void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState, final Client.ResultHandler resultHandler) {
+            waitingCode = authorizationState instanceof TdApi.AuthorizationStateWaitCode;
             switch (authorizationState.getConstructor()) {
             case TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
                 TdApi.SetTdlibParameters request = new TdApi.SetTdlibParameters();
@@ -32,9 +47,10 @@ public class MultitenantClient {
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR:
                 client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), resultHandler);
-                System.out.println("Waiting for authentication code...");
+                System.out.printf("%s Waiting for authentication code\n", tenantName());
                 break;
             case TdApi.AuthorizationStateReady.CONSTRUCTOR:
+                System.out.printf("%s System ready", tenantName());
                 break;
         }
     }
@@ -46,7 +62,7 @@ public class MultitenantClient {
                     onAuthorizationStateUpdated(((TdApi.UpdateAuthorizationState)obj).authorizationState, this);
                     break;
                 case TdApi.Error.CONSTRUCTOR:
-                    System.err.println("Receive an error: " + obj);
+                    System.err.printf("%s Receive an error: %v\n", tenantName(), obj);
                     break;
                 case TdApi.Ok.CONSTRUCTOR:
                 default:
@@ -55,5 +71,3 @@ public class MultitenantClient {
         }
     }
 }
-
-

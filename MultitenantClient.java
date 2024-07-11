@@ -1,7 +1,23 @@
 import org.drinkless.tdlib.Client;
-import org.drinkless.tdlib.TdApi;
+
+import java.util.logging.Logger;
+
+import static org.drinkless.tdlib.TdApi.Object;
+import static org.drinkless.tdlib.TdApi.CheckAuthenticationCode;
+import static org.drinkless.tdlib.TdApi.SetTdlibParameters;
+import static org.drinkless.tdlib.TdApi.SetAuthenticationPhoneNumber;
+import static org.drinkless.tdlib.TdApi.UpdateAuthorizationState;
+import static org.drinkless.tdlib.TdApi.AuthorizationState;
+import static org.drinkless.tdlib.TdApi.AuthorizationStateWaitCode;
+import static org.drinkless.tdlib.TdApi.AuthorizationStateWaitTdlibParameters;
+import static org.drinkless.tdlib.TdApi.AuthorizationStateWaitPhoneNumber;
+import static org.drinkless.tdlib.TdApi.AuthorizationStateReady;
+import static org.drinkless.tdlib.TdApi.Error;
+import static org.drinkless.tdlib.TdApi.Ok;
 
 public class MultitenantClient {
+    private static final Logger logger = Logger.getLogger("multitenant-poc-logger");
+
     private final String  tenantName;
     private final Integer apiId;
     private final String  apiHash;
@@ -24,17 +40,17 @@ public class MultitenantClient {
 
     public void sendAuthCode(String code) {
         if (waitingCode) {
-            client.send(new TdApi.CheckAuthenticationCode(code), obj -> System.out.printf("logged? %t", obj.getConstructor() == TdApi.Ok.CONSTRUCTOR));
+            client.send(new CheckAuthenticationCode(code), obj -> logger.info(String.format("logged? %t", obj.getConstructor() == Ok.CONSTRUCTOR)));
         } else {
-            System.out.printf("%s sending auth code not waiting for it\n", tenantName());
+            logger.info(() -> String.format("%s sending auth code not waiting for it\n", tenantName()));
         }
     }
 
-    private void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState, final Client.ResultHandler resultHandler) {
-            waitingCode = authorizationState instanceof TdApi.AuthorizationStateWaitCode;
+    private void onAuthorizationStateUpdated(AuthorizationState authorizationState, final Client.ResultHandler resultHandler) {
+            waitingCode = authorizationState instanceof AuthorizationStateWaitCode;
             switch (authorizationState.getConstructor()) {
-            case TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
-                TdApi.SetTdlibParameters request = new TdApi.SetTdlibParameters();
+            case AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
+                var request = new SetTdlibParameters();
                 request.databaseDirectory   = String.format("tdlib/%s", tenantName);
                 request.useChatInfoDatabase = true;
                 request.useMessageDatabase  = true;
@@ -45,26 +61,26 @@ public class MultitenantClient {
                 request.applicationVersion  = "0.1.0-dev";
                 client.send(request, resultHandler);
                 break;
-            case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR:
-                client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, null), resultHandler);
-                System.out.printf("%s Waiting for authentication code\n", tenantName());
+            case AuthorizationStateWaitPhoneNumber.CONSTRUCTOR:
+                client.send(new SetAuthenticationPhoneNumber(phoneNumber, null), resultHandler);
+                logger.info(() -> String.format("%s Waiting for authentication code", tenantName()));
                 break;
-            case TdApi.AuthorizationStateReady.CONSTRUCTOR:
-                System.out.printf("%s System ready", tenantName());
+            case AuthorizationStateReady.CONSTRUCTOR:
+                logger.info(() -> String.format("%s authorization ready", tenantName()));
                 break;
         }
     }
 
     private class MyResultHandler implements Client.ResultHandler {
-        public void onResult(TdApi.Object obj) {
+        public void onResult(Object obj) {
             switch (obj.getConstructor()) {
-                case TdApi.UpdateAuthorizationState.CONSTRUCTOR:
-                    onAuthorizationStateUpdated(((TdApi.UpdateAuthorizationState)obj).authorizationState, this);
+                case UpdateAuthorizationState.CONSTRUCTOR:
+                    onAuthorizationStateUpdated(((UpdateAuthorizationState)obj).authorizationState, this);
                     break;
-                case TdApi.Error.CONSTRUCTOR:
-                    System.err.printf("%s Receive an error: %v\n", tenantName(), obj);
+                case Error.CONSTRUCTOR:
+                    logger.info(() -> String.format("%s Receive an error: %v", tenantName()));
                     break;
-                case TdApi.Ok.CONSTRUCTOR:
+                case Ok.CONSTRUCTOR:
                 default:
                     break;
             }

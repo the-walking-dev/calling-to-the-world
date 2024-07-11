@@ -2,7 +2,6 @@
 
 Prueba de concepto de creación de dos instancias de TDLib (clientes) en un mismo proceso.
 
-Este proyecto 
 
 ## Requisitos 
 
@@ -10,10 +9,28 @@ Este proyecto
   * Make (opcional)
   * Docker (optional)
 
+## TL;DR
+
+Build and run the project:
+
+```
+make && make run
+```
+
+Send the authentication token to telegram;
+
+```bash
+# send code to tenant1
+curl -v localhost:8090/tenant1=[auth-code]
+
+# send code to tenant2
+curl -v localhost:8090/tenant1=[auth-code]
+```
+
 ## Compiling
 
 ```bash
-javac -cp .:lib/tdlib.jar Main.java
+javac -cp src/:lib/tdlib.jar -d bin/ src/Main.java
 ```
 
 With `make`:
@@ -27,7 +44,7 @@ make
 ## Running
 
 ```bash
-java -cp .:lib/tdlib.jar -Djava.library.path=lib/ Main
+java -cp bin/:lib/tdlib.jar -Djava.library.path=lib/ Main
 ```
 
 With `make`:
@@ -39,6 +56,12 @@ make run
 > If `.env` file exists, the run target will source it
 
 ## Building and running a container
+
+```bash
+docker build --file build/Dockerfile --tag multitenant-telegram-poc .
+```
+
+There is a target to ease build the docker container:
 
 ```bash
 make package

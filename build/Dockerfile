@@ -1,6 +1,6 @@
 FROM eclipse-temurin:21.0.3_9-jdk AS builder
 WORKDIR /usr/src/telegram-poc
-ADD *.java ./
+ADD src/*.java ./
 ADD lib/tdlib.jar ./lib/
 RUN javac -cp .:lib/tdlib.jar Main.java
 

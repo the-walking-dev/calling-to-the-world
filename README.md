@@ -1,7 +1,6 @@
 # calling-to-the-world
 
-Prueba de concepto de creación de dos instancias de TDLib (clientes) en un mismo proceso.
-
+A proof of concept about create two Telegram client instances (TDLib clients) in the same process.
 
 ## Requisitos 
 
@@ -11,13 +10,13 @@ Prueba de concepto de creación de dos instancias de TDLib (clientes) en un mism
 
 ## TL;DR
 
-Build and run the project:
+Build and run the project, using `make`:
 
 ```
 make && make run
 ```
 
-Send the authentication token to telegram;
+Send the authentication token to telegram:
 
 ```bash
 # send code to tenant1

@@ -5,6 +5,8 @@ import java.util.logging.Logger;
 
 import com.sun.net.httpserver.HttpServer;
 
+import imclient.IMClient;
+
 public class Main {
     private static final int HTTP_PORT = 8090;
 
@@ -12,7 +14,7 @@ public class Main {
 
     public static void main(String...args) throws IOException {
         logger.info("Multiple TDLib instances PoC");
-        var clients = Map.of(
+        Map<String, IMClient> clients = Map.of(
             "tenant1", new MultitenantClient("tenant1"),
             "tenant2", new MultitenantClient("tenant2")
         );
@@ -24,6 +26,8 @@ public class Main {
             var authCode  = response[1];
 
             new Thread(() -> clients.get(tenant).sendAuthCode(authCode)).start(); // send the auth code in other thread
+                
+
             exchange.sendResponseHeaders(200, 0);
             try (var os = exchange.getResponseBody()) {
                 os.write("".getBytes());

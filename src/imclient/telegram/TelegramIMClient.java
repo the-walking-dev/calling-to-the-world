@@ -1,9 +1,13 @@
-import org.drinkless.tdlib.Client;
-
-import imclient.IMClient;
+package imclient.telegram;
 
 import java.util.logging.Logger;
 
+import core.Event;
+import imclient.IMClient;
+import org.drinkless.tdlib.Client;
+
+import static org.drinkless.tdlib.Client.create;
+import static org.drinkless.tdlib.Client.ResultHandler;
 import static org.drinkless.tdlib.TdApi.Object;
 import static org.drinkless.tdlib.TdApi.CheckAuthenticationCode;
 import static org.drinkless.tdlib.TdApi.SetTdlibParameters;
@@ -17,23 +21,23 @@ import static org.drinkless.tdlib.TdApi.AuthorizationStateReady;
 import static org.drinkless.tdlib.TdApi.Error;
 import static org.drinkless.tdlib.TdApi.Ok;
 
-public class MultitenantClient implements IMClient {
+public class TelegramIMClient implements IMClient {
     private static final Logger logger = Logger.getLogger("multitenant-poc-logger");
 
     private final String  tenantName;
     private final Integer apiId;
     private final String  apiHash;
     private final String  phoneNumber;
-    private final Client  client;
+    private final Client client;
 
     private boolean waitingCode = false;
 
-    public MultitenantClient(String tenantName) {
+    public TelegramIMClient(String tenantName) {
         this.tenantName  = tenantName;
         this.apiId       = Integer.parseInt(System.getenv(String.format("%s_API_ID", tenantName.toUpperCase())));
         this.apiHash     = System.getenv(String.format("%s_API_HASH", tenantName.toUpperCase()));
         this.phoneNumber = System.getenv(String.format("%s_PHONE_NUMBER", tenantName.toUpperCase()));;
-        this.client      = Client.create(new MyResultHandler(), null, null);
+        this.client      = create(new MyResultHandler(), null, null);
     }
 
     public String tenantName() {
@@ -48,7 +52,7 @@ public class MultitenantClient implements IMClient {
         }
     }
 
-    private void onAuthorizationStateUpdated(AuthorizationState authorizationState, final Client.ResultHandler resultHandler) {
+    private void onAuthorizationStateUpdated(AuthorizationState authorizationState, final ResultHandler resultHandler) {
             waitingCode = authorizationState instanceof AuthorizationStateWaitCode;
             switch (authorizationState.getConstructor()) {
             case AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
@@ -73,7 +77,7 @@ public class MultitenantClient implements IMClient {
         }
     }
 
-    private class MyResultHandler implements Client.ResultHandler {
+    private class MyResultHandler implements ResultHandler {
         public void onResult(Object obj) {
             switch (obj.getConstructor()) {
                 case UpdateAuthorizationState.CONSTRUCTOR:
@@ -83,6 +87,9 @@ public class MultitenantClient implements IMClient {
                     logger.info(() -> String.format("%s Receive an error: %v", tenantName()));
                     break;
                 case Ok.CONSTRUCTOR:
+                    var event = new Event() {};
+                    publish(event);
+                    break;
                 default:
                     break;
             }

@@ -8,4 +8,4 @@ package:
 	@ docker build --file build/Dockerfile --tag multitenant-telegram-poc .
 
 run:
-	@ [ -f .env ] && export $(grep -v '^#' .env | xargs -d '\n') > /dev/null ; java -cp bin/:lib/tdlib.jar -Djava.library.path=lib/ Main
+	@ [ -f .env ] && source .env ; java -cp bin/:lib/tdlib.jar -Djava.library.path=lib/ Main
